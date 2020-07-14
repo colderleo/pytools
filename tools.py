@@ -2,21 +2,22 @@ import pymysql, itertools, pyexcel_xls, warnings, re, datetime
 
 from typing import List
 
-def import_xls(xls_path, sheet_to_table, mysql_conf, start_row=2):
-    '''usage:
-    target_xls = 'file_name.xlsx'
-    sheet_to_table = [
-        {"sheet_name": "sheel1", "db_table_name": "table1"},
-        {"sheet_name": "sheel2", "db_table_name": "table2"},
-    ]
-    mysql_conf = {
-        'NAME': 'test_db',
-        'USER': 'root',
-        'PASSWORD': '123456',
-        'HOST': '127.0.0.1',
-        'PORT': '3306', 
-    }
-    import_xls(target_xls, sheet_to_table, mysql_conf)
+def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_start_row=2):
+    '''
+        usage:
+        target_xls = 'file_name.xlsx'
+        sheet_to_table = [
+            {"sheet_name": "sheel1", "db_table_name": "table1"},
+            {"sheet_name": "sheel2", "db_table_name": "table2"},
+        ]
+        mysql_conf = {
+            'NAME': 'test_db',
+            'USER': 'root',
+            'PASSWORD': '123456',
+            'HOST': '127.0.0.1',
+            'PORT': '3306', 
+        }
+        import_xls(target_xls, sheet_to_table, mysql_conf, db_columes_row=1, data_start_row=2)
     '''
     total_xls_data = pyexcel_xls.get_data(xls_path)
     DB = DBConn(mysql_conf, ignore_warning=False)
@@ -24,14 +25,14 @@ def import_xls(xls_path, sheet_to_table, mysql_conf, start_row=2):
     for sheet_conf in sheet_to_table:
         sheet_name = sheet_conf["sheet_name"]
         import_data_to_db(total_xls_data[sheet_name], DB, sheet_conf['db_table_name'], sheet_name, \
-            start_row=start_row)
+            db_columes_row=db_columes_row, data_start_row=data_start_row)
 
     del DB
 
 
-def import_data_to_db(sheet_data, DB, table_name, sheet_name, start_row):
-    db_names = sheet_data[1]  # the second row is fixed as db_column_name
-    pure_data = sheet_data[start_row:]
+def import_data_to_db(sheet_data, DB, table_name, sheet_name, db_columes_row=1, data_start_row=2):
+    db_names = sheet_data[db_columes_row]  # the row records db_column_name
+    pure_data = sheet_data[data_start_row:]
     cursor = DB.dict_cursor
 
     for i, db_name in enumerate(db_names):
@@ -57,7 +58,7 @@ def import_data_to_db(sheet_data, DB, table_name, sheet_name, start_row):
                 if row[i] in foreign_dict:
                     row[i] = foreign_dict[row[i]]
                 elif row[i]:
-                    print('Alert: {} 外键未找到'.format(row[i]))
+                    print('Alert: {} foreign key not found'.format(row[i]))
 
     db_name_str = '({})'.format(','.join([val for val in db_names if val]))
     insert_data_strs = []
@@ -79,7 +80,7 @@ def import_data_to_db(sheet_data, DB, table_name, sheet_name, start_row):
         table_name, db_name_str, ','.join(insert_data_strs))
     res = cursor.execute(sql)
     DB.conn.commit()
-    print('{} 导入完成，成功导入{}/{}条'.format(sheet_name, res, len(pure_data)))
+    print(f'{sheet_name} import succeed {res}/{len(pure_data)}.')
 
 
 class DBConn:
