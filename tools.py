@@ -1,6 +1,4 @@
-import pymysql, itertools, pyexcel_xls, warnings, re, datetime
 
-from typing import List
 
 def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_start_row=2):
     '''
@@ -19,6 +17,7 @@ def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_star
         }
         import_xls(target_xls, sheet_to_table, mysql_conf, db_columes_row=1, data_start_row=2)
     '''
+    import pyexcel_xls, itertools
     total_xls_data = pyexcel_xls.get_data(xls_path)
     DB = DBConn(mysql_conf, ignore_warning=False)
     
@@ -83,6 +82,8 @@ def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_star
     del DB
 
 
+
+import pymysql, warnings
 class DBConn:
     def __init__(self, db_conf:dict, ignore_warning=False, create_db=False):
         '''
@@ -130,7 +131,8 @@ class DBConn:
 
 
 def get_date_by_str(date_str:str):
-    'convert a data-like string to date, such as: 2020-6-12, 2020.6.12, 2020.06.12, 20200612'
+    import re, datetime
+    'convert a string to date. support many kinds of format like: 2020-6-12, 2020.6.12, 2020.06.12, 20200612'
     spliter = re.sub(r'\d', '',date_str) # remove all number to get a spliter
     if not spliter:
         res_date = datetime.date(int(date_str[:4]), int(date_str[4:6]), int(date_str[6:]))
@@ -140,7 +142,6 @@ def get_date_by_str(date_str:str):
     ymd = date_str.split(spliter)[:3]
     res_date = datetime.date(int(ymd[0]), int(ymd[1]), int(ymd[2]))
     return res_date
-
 
 def to_list(item):
     'if input item is a list, return it. if not, return [item]'
@@ -165,6 +166,7 @@ def date_ext(year:int, month:int, day:int):
             today = datetime.date.today()
             print(date_ext(today.year, today.month+1, 15))
     '''
+    import datetime
     while month>12:
         year += 1
         month -= 12
@@ -175,7 +177,10 @@ def date_ext(year:int, month:int, day:int):
     return datetime.date(year, month, 1)+delta_days
 
 
+
+import datetime
 class TradingDayCalc:
+    from typing import List
     def __init__(self, holidays:List[datetime.date]):
         self.holidays = holidays
 
