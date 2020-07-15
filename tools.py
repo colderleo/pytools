@@ -22,65 +22,65 @@ def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_star
     total_xls_data = pyexcel_xls.get_data(xls_path)
     DB = DBConn(mysql_conf, ignore_warning=False)
     
+    def import_data_to_db(sheet_data, DB, table_name, sheet_name, db_columes_row=1, data_start_row=2):
+        db_names = sheet_data[db_columes_row]  # the row records db_column_name
+        pure_data = sheet_data[data_start_row:]
+        cursor = DB.dict_cursor
+
+        for i, db_name in enumerate(db_names):
+            if db_name.find(':') >= 0:
+                col_setting = db_name.split(':')
+                pure_db_name = col_setting[0]
+
+                foreign_names = col_setting[1].split('.')
+                foreign_table = foreign_names[0]
+                foreign_context_col = foreign_names[1]
+                
+                foreign_key_col = col_setting[2]
+
+                sql = 'select {},{} from {}'.format(foreign_context_col, foreign_key_col, foreign_table)
+                cursor.execute(sql)
+                records = cursor.fetchall()
+                foreign_dict = {}
+                for record in records:
+                    foreign_dict[record[foreign_context_col]] = record[foreign_key_col]
+
+                db_names[i] = pure_db_name
+                for row in pure_data:
+                    if row[i] in foreign_dict:
+                        row[i] = foreign_dict[row[i]]
+                    elif row[i]:
+                        print('Alert: {} foreign key not found'.format(row[i]))
+
+        db_name_str = '({})'.format(','.join([val for val in db_names if val]))
+        insert_data_strs = []
+        for i, row in enumerate(pure_data):
+            row_values = []
+            for db_name, row_value in itertools.zip_longest(db_names, row):
+                if db_name:
+                    # if type(row_values==str):
+                    if isinstance(row_value, int) or isinstance(row_value, float):
+                        row_value = '{}'.format(row_value)
+                    elif row_value:
+                        row_value = '"{}"'.format(row_value)
+                    else:
+                        row_value = 'DEFAULT'
+                    row_values.append(row_value)
+            insert_data_strs.append('({})'.format(','.join(row_values)))
+
+        sql = 'insert ignore into {} {} VALUES {}'.format( \
+            table_name, db_name_str, ','.join(insert_data_strs))
+        res = cursor.execute(sql)
+        DB.conn.commit()
+        print(f'{sheet_name} import succeed {res}/{len(pure_data)}.')
+
+
     for sheet_conf in sheet_to_table:
         sheet_name = sheet_conf["sheet_name"]
         import_data_to_db(total_xls_data[sheet_name], DB, sheet_conf['db_table_name'], sheet_name, \
             db_columes_row=db_columes_row, data_start_row=data_start_row)
 
     del DB
-
-
-def import_data_to_db(sheet_data, DB, table_name, sheet_name, db_columes_row=1, data_start_row=2):
-    db_names = sheet_data[db_columes_row]  # the row records db_column_name
-    pure_data = sheet_data[data_start_row:]
-    cursor = DB.dict_cursor
-
-    for i, db_name in enumerate(db_names):
-        if db_name.find(':') >= 0:
-            col_setting = db_name.split(':')
-            pure_db_name = col_setting[0]
-
-            foreign_names = col_setting[1].split('.')
-            foreign_table = foreign_names[0]
-            foreign_context_col = foreign_names[1]
-            
-            foreign_key_col = col_setting[2]
-
-            sql = 'select {},{} from {}'.format(foreign_context_col, foreign_key_col, foreign_table)
-            cursor.execute(sql)
-            records = cursor.fetchall()
-            foreign_dict = {}
-            for record in records:
-                foreign_dict[record[foreign_context_col]] = record[foreign_key_col]
-
-            db_names[i] = pure_db_name
-            for row in pure_data:
-                if row[i] in foreign_dict:
-                    row[i] = foreign_dict[row[i]]
-                elif row[i]:
-                    print('Alert: {} foreign key not found'.format(row[i]))
-
-    db_name_str = '({})'.format(','.join([val for val in db_names if val]))
-    insert_data_strs = []
-    for i, row in enumerate(pure_data):
-        row_values = []
-        for db_name, row_value in itertools.zip_longest(db_names, row):
-            if db_name:
-                # if type(row_values==str):
-                if isinstance(row_value, int) or isinstance(row_value, float):
-                    row_value = '{}'.format(row_value)
-                elif row_value:
-                    row_value = '"{}"'.format(row_value)
-                else:
-                    row_value = 'DEFAULT'
-                row_values.append(row_value)
-        insert_data_strs.append('({})'.format(','.join(row_values)))
-
-    sql = 'insert ignore into {} {} VALUES {}'.format( \
-        table_name, db_name_str, ','.join(insert_data_strs))
-    res = cursor.execute(sql)
-    DB.conn.commit()
-    print(f'{sheet_name} import succeed {res}/{len(pure_data)}.')
 
 
 class DBConn:
@@ -107,6 +107,7 @@ class DBConn:
         self.dict_cursor = self.conn.cursor(cursor=pymysql.cursors.DictCursor)
         self.common_cursor = self.conn.cursor()
 
+        warnings.filterwarnings("ignore",category=pymysql.Warning) #ignore warnings for already exists table or db, or doesn't exist 
         if db_conf['NAME']:
             if create_db:
                 self.common_cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_conf['NAME']} DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci")
@@ -118,8 +119,8 @@ class DBConn:
         self.dict_cursor.execute(sql)
         self.common_cursor.execute(sql)
 
-        if ignore_warning:
-            warnings.filterwarnings("ignore",category=pymysql.Warning)
+        if not ignore_warning:
+            warnings.resetwarnings()
 
 
     def __del__(self):
