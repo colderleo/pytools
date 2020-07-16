@@ -123,7 +123,6 @@ class DBConn:
         if not ignore_warning:
             warnings.resetwarnings()
 
-
     def __del__(self):
         self.conn.close()
         self.dict_cursor.close()
@@ -142,6 +141,7 @@ def get_date_by_str(date_str:str):
     ymd = date_str.split(spliter)[:3]
     res_date = datetime.date(int(ymd[0]), int(ymd[1]), int(ymd[2]))
     return res_date
+
 
 def to_list(item):
     'if input item is a list, return it. if not, return [item]'
@@ -177,7 +177,6 @@ def date_ext(year:int, month:int, day:int):
     return datetime.date(year, month, 1)+delta_days
 
 
-
 import datetime
 class TradingDayCalc:
     from typing import List
@@ -204,3 +203,53 @@ class TradingDayCalc:
             the_date += datetime.timedelta(1)
         return the_date
 
+
+import warnings, pymysql
+class FilterWarning(object):
+    '''
+        with FilterWarning():
+            DB.connect()
+    '''
+    def __init__(self):
+        pass
+
+    def __enter__(self, category=pymysql.Warning):
+        # print('FilterWarning: filter pymysql warnings')
+        warnings.filterwarnings("ignore",category=category)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # print('FilterWarning: reste warnings')
+        warnings.resetwarnings()
+        return True
+
+
+class PrintException(object):
+    '''
+        with PrintException():
+            a = 1/0
+    '''
+    def __init__(self, print_trace=True):
+        self.print_trace = print_trace
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback_obj):
+        print(f'PrintException: {exc_value}')
+        if self.print_trace:
+            import traceback
+            traceback.print_exception(exc_type, exc_value, exc_traceback_obj)
+        return True
+
+
+def wrapperTpl(func):
+    from functools import wraps
+    @wraps(func)
+    def inner(*args, **kwargs):
+        '''在执行目标函数之前要执行的内容'''
+        ret = func(*args, **kwargs)
+        '''在执行目标函数之后要执行的内容'''
+        return ret
+    return inner
