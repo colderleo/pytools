@@ -1,4 +1,4 @@
-
+# pylint: disable=import-error
 
 def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_start_row=2):
     '''
@@ -253,3 +253,126 @@ def wrapperTpl(func):
         '''在执行目标函数之后要执行的内容'''
         return ret
     return inner
+
+
+
+def dict_recursive_update(default, custom):
+    '''Copy from github: https://github.com/Maples7/dict-recursive-update
+    Return a dict merged from default and custom
+    >>> recursive_update('a', 'b')
+        Traceback (most recent call last):
+            ...
+        TypeError: Params of recursive_update should be dicts
+    '''
+    if not isinstance(default, dict) or not isinstance(custom, dict):
+        raise TypeError('Params of recursive_update should be dicts')
+
+    for key in custom:
+        if isinstance(custom[key], dict) and isinstance(
+                default.get(key), dict):
+            default[key] = dict_recursive_update(default[key], custom[key])
+        else:
+            default[key] = custom[key]
+
+    return default
+
+
+def load_json(file_path:str):
+    import json
+    with open(file_path,'r',encoding='utf-8') as f:
+        json_var = json.load(f)
+        return json_var
+
+def save_json(json_var, file_path:str):
+    import json
+    '''attention: will rewrite the file of file_path'''
+    with open(file_path, 'w',encoding='utf-8') as f:
+        json.dump(json_var, f, ensure_ascii=False, indent=4)
+
+def random_in(i:int):
+    import random
+    return random.randint(1,i)==1
+
+
+def get_xls_cell_date(cell):
+    import xlrd
+    if cell.ctype == 3: 
+        ms_date_number = cell.value
+        year, month, day, _hour, _minute, _second = xlrd.xldate_as_tuple(ms_date_number, xlrd.Book.datemode)
+        res_date = datetime.date(year, month, day) 
+        return res_date
+    else:
+        date_str = str(cell.value)
+        return get_date_by_str(date_str)
+
+
+def print_obj(*args):
+    for obj in args: 
+        if type(obj) == str:
+            print(obj)
+        else:
+            print('\n'.join(['%s:%s' % item for item in obj.__dict__.items()]) )
+
+
+def code_response(code=1, msg='', data:dict={}):
+    from django.http.response import JsonResponse
+    ret = {
+        'rescode': code,
+        'resmsg': msg,
+    }
+    ret.update(data)
+    return JsonResponse(ret)
+
+
+def get_timestamp(t:datetime.datetime=None):
+    import datetime, time
+    if not t:
+        t = datetime.datetime.now()
+    return int(time.mktime(t.timetuple()))
+
+
+def load_json_var(json_str:str, key=None):
+    import json
+    with PrintException:
+        ret = json.loads(json_str)
+        if ret and key:
+            return ret.get(key)
+        return ret
+    return None
+
+
+def generate_jwt_token(openid:str='undefined_wx_openid', encode_to_str=True):
+    import jwt # pip install pyjwt
+    JWT_SECRET = 'dkdll893hj938h42h829h'
+    EXPIRE_SECONDS = '7000'
+    payload = {
+        'uid': 'uid_abc',
+        'expire_time': get_timestamp() + EXPIRE_SECONDS,
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')  # decoded = jwt.decode(token, secret, algorithms='HS256')
+    if encode_to_str:
+        token = str(token, encoding='utf-8')
+    return token
+
+
+def parse_jwt_token(token, key=None):
+    '''
+        if verify passed, return payload
+        if key, return payload[key]
+        else, return None
+    '''
+    import jwt # pip install pyjwt
+    try:
+        JWT_SECRET = 'dkdll893hj938h42h829h'
+        payload = jwt.decode(token, JWT_SECRET, algorithms='HS256')
+        cur_timestamp = get_timestamp()
+        if cur_timestamp > payload['expire_time']:
+            raise Exception('login expired')
+        if key:
+            return payload.get(key)
+        else:
+            return payload
+    except Exception as e:
+        print(f'verify token failed: {e}')
+    return None
+
