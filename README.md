@@ -1,6 +1,62 @@
 # pytools
 some useful python tools.
 
+##### PrintException
+
+```python
+with PrintException():
+	a = 1/0
+```
+
+##### FilterWarning
+```python
+with FilterWarning():
+	DB.connect()
+```
+##### date_ext
+
+​    Create a datetime.date with (year,month,day), but the month and day can be any integer num:
+
+```python
+date_ext(2019,2,30)  -> datetime.date(2019,3,2)
+date_ext(2019,2,0)   -> datetime.date(2019,1,31)
+date_ext(2019,0,15)  -> datetime.date(2018,12,15)
+date_ext(2019,-1,15) -> datetime.date(2018,11,15) 
+```
+
+​	some useful way to use:
+
+```python
+# 1. get each month's last day of year 2019:
+    for i in range(2, 14):
+        print(date_ext(2019, i, 0))
+# 2. get next month's 15 (don't worry it will go next year):
+    today = datetime.date.today()
+    print(date_ext(today.year, today.month+1, 15))
+```
+
+
+
+##### get_date_by_str
+
+ convert a string to date. support many kinds of format like: 2020-6-12, 2020.6.12, 2020.06.12, 20200612
+
+##### DBConn
+
+Use pymysql. 
+
+When create, connect to db and use default db, and set `self.conn, self.dict_cursor, self.common_cursor`. 
+
+When class obj is deleted, call `conn.disconnect, cursor.disconnect`
+
+##### import_xls
+
+see below.
+
+
+
+
+
 ## import xls to database
 
 #### useage

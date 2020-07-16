@@ -153,16 +153,16 @@ def to_list(item):
 def date_ext(year:int, month:int, day:int):
     '''
         Create a datetime.date with extend (year,month,day), but the month and day can be any integer num:
-            date_ext(2019,2,30) -> datetime.date(2019,3,2)
-            date_ext(2019,2,0) -> datetime.date(2019,1,31)
-            date_ext(2019,0,15) -> datetime.date(2018,12,15)
-            date_ext(2019,-1,15) -> datetime.date(2018,11,15)
+            date_ext(2019,2,30)  -> datetime.date(2019,3,2)
+            date_ext(2019,2,0)   -> datetime.date(2019,1,31)
+            date_ext(2019,0,15)  -> datetime.date(2018,12,15)
+            date_ext(2019,-1,15) -> datetime.date(2018,11,15) 
 
         some useful way to use:
         1. get each month's last day of year 2019:
             for i in range(2, 14):
                 print(date_ext(2019, i, 0))
-        2. get next month's 15 (no metter it will go next year or not):
+        2. get next month's 15 (don't worry it will go next year):
             today = datetime.date.today()
             print(date_ext(today.year, today.month+1, 15))
     '''
