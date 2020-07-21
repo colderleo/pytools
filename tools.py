@@ -83,6 +83,33 @@ def import_xls(xls_path, sheet_to_table, mysql_conf, db_columes_row=1, data_star
 
 
 
+def convert_xls_col_chars_to_indexx(chars):
+    'convert A->1, Z->26, AA->27, AB->28, AZZ->1378. indexx starts from 1'
+    ret = 0
+    for char in chars:
+        ret *= 26
+        value = ord(char) - ord('A') + 1
+        ret += value
+    return ret
+
+def convert_xls_col_indexx_to_chars(indexx:int):
+    'convert 1->A, 26->Z, 17->AA, 28->AB, 1378->AZZ. indexx starts from 1'
+    ret = ''
+    ord_zero = ord('A') - 1
+    radix = ord('Z') - ord_zero
+    while indexx > radix:
+        rest = indexx % radix
+        if (rest==0):
+            ret += 'Z'
+            indexx = indexx // radix - 1
+        else:
+            ret += chr(indexx % radix + ord_zero)
+            indexx = indexx // radix
+    if indexx > 0:
+        ret += chr(indexx + ord_zero)
+    return ret[::-1]
+
+
 import pymysql, warnings
 class DBConn:
     def __init__(self, db_conf:dict, ignore_warning=False, create_db=False):
