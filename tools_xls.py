@@ -93,7 +93,6 @@ def find_xlwings_cell(rng:xlwings.Range, target, startswith=False):
                 return cell
 
 
-import xlwings
 def get_xlwings_col(cell:xlwings.Range):
     'cell is a 1x1 Range'
     sheet = cell.sheet
@@ -102,11 +101,16 @@ def get_xlwings_col(cell:xlwings.Range):
             return col
 
 
+def get_xlwings_total_range(sheet:xlwings.Sheet) -> xlwings.Range:
+    'return range from A1 to all used range'
+    return sheet[:sheet.used_range.last_cell.row, :sheet.used_range.last_cell.column]
+
+
 def xlwings_usage():
     import xlwings as xw
     wb = xw.Book()  # this will create a new workbook
     # wb = xw.Book('FileName.xlsx')  # connect to an existing file in the current working directory
-    sht = wb.sheets[0]  # sht = wb.sheets['Sheet1']
+    sht:xlwings.Sheet = wb.sheets[0]  # sht = wb.sheets['Sheet1']
     max_row = sht.used_range.last_cell.row
     max_col = sht.used_range.last_cell.column
 
@@ -114,3 +118,17 @@ def xlwings_usage():
     fill_full_range = sht[0:max_row, 0:max_col]
     # sht.range('B103:AQ103').api.AutoFill(sht.range('B103:AQ104').api,0)
     fill_ref_range.api.AutoFill(fill_full_range.api, 0)
+
+    # an useful way to deal data:
+    sheet = wb.sheets[0]
+    product_name_col_index = find_xlwings_cell(sheet.used_range, 'product_name').colunm - 1
+    equity_col_index = find_xlwings_cell(sheet.used_range, 'equity').colunm - 1
+    total_range = get_xlwings_total_range(sheet)
+    equity_dict = {}
+    for row in total_range:
+        if row.value:
+            product_name = row.value[product_name_col_index]
+            equity = row.value[equity_col_index]
+            if isinstance(product_name, str) and (type(equity) in [float, int]):
+                equity_dict[product_name] = equity
+    print(equity_dict)
