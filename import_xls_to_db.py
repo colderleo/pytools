@@ -1,5 +1,5 @@
 
-from tools import import_xls
+from tools_db import import_xls
 
 def main():
     target_xls = 'import_xls_to_db_test.xlsx'
