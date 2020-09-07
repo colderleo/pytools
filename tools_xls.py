@@ -1,5 +1,34 @@
 
 
+def find_row_col(sheet_data, target, startswith=False, index_0_based=True, col_chars_format=False):
+    '''
+        find target's row and col in sheet. 
+        sheet_data is a 2d array, or iterable by rows, cols.
+        startswith: find cell which is str and startswith(target)
+        col_chars_format: return xls col name lick A,B...Z,AA,AB
+        if not found, return None, None
+    '''
+    def find():
+        for i, row in enumerate(sheet_data):
+            for j, value in enumerate(row):
+                if value==target:
+                    return (i, j)
+                if startswith and isinstance(value, str) and value.startswith(target):
+                    return (i, j)
+        return None, None
+
+    row, col = find()
+    if row is not None: # found
+        col_chars = get_xls_column_letter(col+1)
+        if not index_0_based:
+            row += 1
+            col += 1
+        if col_chars_format:
+            col = col_chars
+    return row, col
+        
+
+
 
 def get_xlrd_cell_date(cell):
     import xlrd, datetime
@@ -110,25 +139,26 @@ def xlwings_usage():
     import xlwings as xw
     wb = xw.Book()  # this will create a new workbook
     # wb = xw.Book('FileName.xlsx')  # connect to an existing file in the current working directory
-    sht:xlwings.Sheet = wb.sheets[0]  # sht = wb.sheets['Sheet1']
-    max_row = sht.used_range.last_cell.row
-    max_col = sht.used_range.last_cell.column
+    sheet:xlwings.Sheet = wb.sheets[0]  # sheet = wb.sheets['Sheet1']
+    max_row = sheet.used_range.last_cell.row
+    max_col = sheet.used_range.last_cell.column
 
-    fill_ref_range = sht[0, 3:max_col]
-    fill_full_range = sht[0:max_row, 0:max_col]
-    # sht.range('B103:AQ103').api.AutoFill(sht.range('B103:AQ104').api,0)
+    fill_ref_range = sheet[0, 3:max_col]
+    fill_full_range = sheet[0:max_row, 0:max_col]
+    # sheet.range('B103:AQ103').api.AutoFill(sheet.range('B103:AQ104').api,0)
     fill_ref_range.api.AutoFill(fill_full_range.api, 0)
 
     # an useful way to deal data:
     sheet = wb.sheets[0]
     product_name_col_index = find_xlwings_cell(sheet.used_range, 'product_name').colunm - 1
     equity_col_index = find_xlwings_cell(sheet.used_range, 'equity').colunm - 1
-    total_range = get_xlwings_total_range(sheet)
     equity_dict = {}
-    for row in total_range:
-        if row.value:
-            product_name = row.value[product_name_col_index]
-            equity = row.value[equity_col_index]
-            if isinstance(product_name, str) and (type(equity) in [float, int]):
-                equity_dict[product_name] = equity
+    for row in sheet.used_range.rows:
+        product_name = sheet[row.row-1, product_name_col_index].value
+        equity = sheet[row.row-1, equity_col_index].value
+        if isinstance(product_name, str) and (type(equity) in [float, int]):
+            equity_dict[product_name] = equity
     print(equity_dict)
+
+
+

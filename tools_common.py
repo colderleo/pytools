@@ -2,6 +2,53 @@
 
 
 
+def send_email(sender:str, receivers:list, msg_title, msg_body, smtp_server:str, password:str, 
+            cc_emails:list=None, sender_name:str='',
+            attachment_filepath=None, attachment_name=None, 
+            receivers_can_see_eachother=False, print_ret=False) -> bool:
+            
+        import smtplib, os
+        from email.mime.text import MIMEText
+        from email.utils import formataddr
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.application import MIMEApplication
+
+        msg = MIMEMultipart()
+        msg['From'] = formataddr([sender_name, sender])
+        msg['Subject'] = msg_title
+        if cc_emails:
+            msg['Cc'] = ','.join(cc_emails)
+        if receivers_can_see_eachother or (len(receivers)==1):
+            msg["To"] = ','.join(receivers)
+            
+        msg.attach(MIMEText(msg_body, 'plain', 'utf-8'))
+
+        if attachment_filepath:
+            with open(attachment_filepath, 'rb') as f:
+                if attachment_name is None:
+                    _folder_path, attachment_name = os.path.split(attachment_filepath);
+                part = MIMEApplication(f.read())
+                part.add_header('Content-Disposition', 'attachment', filename=attachment_name)
+                msg.attach(part)
+
+        try:
+            smtp = smtplib.SMTP()
+            smtp.connect(smtp_server)
+            smtp.login(sender, password)
+            for cc in cc_emails:
+                if cc not in receivers:
+                    receivers.append(cc)
+            smtp.sendmail(sender, receivers, msg.as_string())
+            if(print_ret):
+                print('邮件发送成功')
+            return True
+        except smtplib.SMTPException as e:
+            if(print_ret):
+                print('邮件发送失败: ' + str(e))
+            return False
+        smtp.quit()
+
+
 def get_date_by_str(date_str:str):
     import re, datetime
     'convert a string to date. support many kinds of format like: 2020-6-12, 2020.6.12, 2020.06.12, 20200612'
@@ -57,7 +104,6 @@ class TradingDayCalc:
         self.holidays = holidays
 
     def is_trading_day(self, the_date:datetime.date):
-        'check if the_date is a trading day'
         if the_date in self.holidays:
             return False
         if the_date.weekday() in [5,6]:
@@ -65,16 +111,28 @@ class TradingDayCalc:
         return True
 
     def holiday_go_before(self, the_date):
-        'get the latest trading day on the_date or before the_date'
-        while not self.is_trading_day(the_date):
-            the_date += datetime.timedelta(-1)
-        return the_date
+        ret = the_date + datetime.timedelta(0)   # do not change the input var
+        while not self.is_trading_day(ret):
+            ret += datetime.timedelta(-1)
+        return ret
 
     def holiday_go_after(self, the_date):
-        'get the earlist trading day on the_date or after the_date'
-        while not self.is_trading_day(the_date):
-            the_date += datetime.timedelta(1)
-        return the_date
+        ret = the_date + datetime.timedelta(0)
+        while not self.is_trading_day(ret):
+            ret += datetime.timedelta(1)
+        return ret
+
+    def n_trading_days_later(self, start_day:datetime.date, n:int):
+        '''
+            usage: 1 trading day later(T1): n_trading_day_later(today, 1)
+            no metter if start_day is trading day.
+        '''
+        ret = start_day + datetime.timedelta(0)
+        for _i in range(n):
+            ret += datetime.timedelta(1)
+            ret = self.holiday_go_after(ret)
+        return ret
+
 
 
 import warnings, pymysql
