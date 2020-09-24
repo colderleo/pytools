@@ -6,7 +6,19 @@ def send_email(sender:str, receivers:list, msg_title, msg_body, smtp_server:str,
             cc_emails:list=None, sender_name:str='',
             attachment_filepath=None, attachment_name=None, 
             receivers_can_see_eachother=False, print_ret=False) -> bool:
-            
+        '''
+            receivers_can_see_eachother: default False, each receiver can only see himself. 
+            cc_emails: cc_emails can always be seen by all receivers.
+            attachment_name: default set to the initial filename
+            sender_name: the name shown in email beside sender email address, like: Mike<123456@qq.com>
+
+            useage:
+            tools_common.send_email(sender='test@qq.com', receivers=['receiver1@163.com'], \
+                msg_title='标题A', msg_body='正文B', smtp_server='smtp.exmail.qq.com', password='123456',
+                cc_emails=['cc1@qq.com'], attachment_filepath='test.txt')
+        '''
+
+
         import smtplib, os
         from email.mime.text import MIMEText
         from email.utils import formataddr
@@ -35,10 +47,15 @@ def send_email(sender:str, receivers:list, msg_title, msg_body, smtp_server:str,
             smtp = smtplib.SMTP()
             smtp.connect(smtp_server)
             smtp.login(sender, password)
-            for cc in cc_emails:
-                if cc not in receivers:
-                    receivers.append(cc)
-            smtp.sendmail(sender, receivers, msg.as_string())
+            if cc_emails:
+                for cc in cc_emails:
+                    if cc not in receivers:
+                        receivers.append(cc)
+            vaild_receivers = []
+            for r in receivers:
+                if r:
+                    vaild_receivers.append(r)
+            smtp.sendmail(sender, vaild_receivers, msg.as_string())
             if(print_ret):
                 print('邮件发送成功')
             return True
