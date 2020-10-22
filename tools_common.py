@@ -14,7 +14,7 @@ def send_email(sender:str, receivers:list, msg_title, msg_body, smtp_server:str,
 
             useage:
             tools_common.send_email(sender='test@qq.com', receivers=['receiver1@163.com'], \
-                msg_title='标题A', msg_body='正文B', smtp_server='smtp.exmail.qq.com', password='123456',
+                msg_title='标题A', msg_body='正文B', smtp_server='smtp.qq.com', password='123456',
                 cc_emails=['cc1@qq.com'], attachment_filepath='test.txt')
         '''
 
@@ -25,11 +25,13 @@ def send_email(sender:str, receivers:list, msg_title, msg_body, smtp_server:str,
         from email.mime.multipart import MIMEMultipart
         from email.mime.application import MIMEApplication
 
+        receivers = to_list(receivers)
+
         msg = MIMEMultipart()
         msg['From'] = formataddr([sender_name, sender])
         msg['Subject'] = msg_title
         if cc_emails:
-            msg['Cc'] = ','.join(cc_emails)
+            msg['Cc'] = ','.join(to_list(cc_emails))
         if receivers_can_see_eachother or (len(receivers)==1):
             msg["To"] = ','.join(receivers)
             

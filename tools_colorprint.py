@@ -22,7 +22,7 @@
     :license: BSD
 """
 from __future__ import print_function
-import datetime
+import datetime, platform, sys, ctypes
 
 try:
     import __builtin__
@@ -30,39 +30,85 @@ except ImportError:
     import builtins as __builtin__
     basestring = str
 
-import sys
 
 __all__ = ['print']
 
 __author__ = 'Aleksey Rembish'
 __email__ = 'alex@rembish.ru'
-
 __description__ = 'Python module to print in color using py3k-style print function'
 __url__ = 'https://github.com/don-ramon/colorprint'
 __copyright__ = '(c) 2012 %s' % __author__
 __license__ = 'BSD'
-
 __version__ = '0.1'
 
-_colors = {
+
+linux_colors = {
     'grey': 30,  'red': 31,
     'green': 32, 'yellow': 33,
     'blue': 34,  'magenta': 35,
     'cyan': 36,  'white': 37,
 }
 
-_backgrounds = {
+linux_backgrounds = {
     'grey': 40,  'red': 41,
     'green': 42, 'yellow': 43,
     'blue': 44,  'magenta': 45,
     'cyan': 46,  'white': 47,
 }
 
-_formats = {
+linux_formats = {
     'bold': 1, 'dark': 2,
     'underline': 4, 'blink': 5,
     'reverse': 7, 'concealed': 8,
 }
+
+
+# Windows CMD命令行 字体颜色定义 text colors
+FOREGROUND_BLACK = 0x00 # black.
+FOREGROUND_DARKBLUE = 0x01 # dark blue.
+FOREGROUND_DARKGREEN = 0x02 # dark green.
+FOREGROUND_DARKSKYBLUE = 0x03 # dark skyblue.
+FOREGROUND_DARKRED = 0x04 # dark red.
+FOREGROUND_DARKPINK = 0x05 # dark pink.
+FOREGROUND_DARKYELLOW = 0x06 # dark yellow.
+FOREGROUND_DARKWHITE = 0x07 # dark white.
+FOREGROUND_DARKGRAY = 0x08 # dark gray.
+FOREGROUND_BLUE = 0x09 # blue.
+FOREGROUND_GREEN = 0x0a # green.
+FOREGROUND_SKYBLUE = 0x0b # skyblue.
+FOREGROUND_RED = 0x0c # red.
+FOREGROUND_PINK = 0x0d # pink.
+FOREGROUND_YELLOW = 0x0e # yellow.
+FOREGROUND_WHITE = 0x0f # white.
+
+windows_colors = {
+    'red': FOREGROUND_RED,
+    'green': FOREGROUND_GREEN, 
+    'yellow': FOREGROUND_YELLOW,
+    'blue': FOREGROUND_BLUE,
+    'white': FOREGROUND_WHITE,
+    'black': FOREGROUND_BLACK,
+}
+
+# windows cmd param
+STD_INPUT_HANDLE = -10
+STD_OUTPUT_HANDLE = -11
+STD_ERROR_HANDLE = -12
+
+
+is_windows = bool(platform.system().lower() == 'windows')
+
+# get handle
+std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+
+def set_cmd_text_color(color, handle=std_out_handle):
+    Bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
+    return Bool
+
+#reset white
+def resetColor():
+    set_cmd_text_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+
 
 def print(*args, sep=' ', end='\n', file=sys.stdout, color=None, background=None, formats=[],
         dt:bool=False, dt_color='yellow', **kwargs):
@@ -87,20 +133,40 @@ def print(*args, sep=' ', end='\n', file=sys.stdout, color=None, background=None
     if dt:
         now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'{now_str} ', end='', color=dt_color)
+
     if color or background:
         kwargs['end'] = ""
 
-        if color:
-            __builtin__.print('\033[%dm' % _colors[color], file=file, end='')
-        if background:
-            __builtin__.print('\033[%dm' % _backgrounds[background], file=file, end='')
-        for format in formats:
-            __builtin__.print('\033[%dm' % _formats[format], file=file, end='')
+        if is_windows:
+            if color:
+                import time
+                time.sleep(1)
+                set_cmd_text_color(windows_colors[color])
+                __builtin__.print(f'[{color}]:', file=file, end='')
 
-        __builtin__.print(*args, **kwargs)
-        __builtin__.print('\033[0m', file=file, end=end)
+            # __builtin__.print(*args, **kwargs)
+            sys.stdout.write(*args)
+
+            __builtin__.print(file=file, end=end)
+            # resetColor()
+
+        else:
+            if color:
+                __builtin__.print(f'\033[{linux_colors[color]}m', file=file, end='')
+            if background:
+                __builtin__.print(f'\033[{linux_backgrounds[background]}m', file=file, end='')
+            for fmt in formats:
+                __builtin__.print(f'\033[{linux_formats[fmt]}m', file=file, end='')
+
+            __builtin__.print(*args, **kwargs)
+            __builtin__.print('\033[0m', file=file, end=end)
+
     else:
         __builtin__.print(*args, **kwargs)
+
+
+
+
 
 if __name__ == '__main__':
     print('Hello', 'world', color='white', background='blue', format='underline', end='', sep=', ')

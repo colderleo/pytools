@@ -1,3 +1,4 @@
+# pyexcel-xls很好用， xls_data = pyexcel_xls.get_data('test.xlsx')
 
 def find_row_col(data_2d, target, startswith=False, index_0_based=True, col_chars_format=False):
     '''
@@ -47,8 +48,9 @@ def get_xlrd_cell_date(cell):
 
 def xls_column_letter_to_num(chars):
     '''
-        convert A->1, Z->26, AA->27, AB->28, AZZ->1378. num starts from 1
+        convert A->1, Z->26, AA->27, AB->28, AZZ->1378. 
         the same as: openpyxl.utils.column_index_from_string
+        num starts from 1.
     '''
     ret = 0
     for char in chars:
