@@ -130,13 +130,13 @@ class TradingDayCalc:
         return True
 
     def holiday_go_before(self, the_date):
-        ret = the_date + datetime.timedelta(0)   # do not change the input var
+        ret = the_date + datetime.timedelta(0)   # copy input
         while not self.is_trading_day(ret):
             ret += datetime.timedelta(-1)
         return ret
 
     def holiday_go_after(self, the_date):
-        ret = the_date + datetime.timedelta(0)
+        ret = the_date + datetime.timedelta(0)  # copy input
         while not self.is_trading_day(ret):
             ret += datetime.timedelta(1)
         return ret
@@ -146,7 +146,7 @@ class TradingDayCalc:
             usage: 1 trading day later(T1): n_trading_day_later(today, 1)
             no metter if start_day is trading day.
         '''
-        ret = start_day + datetime.timedelta(0)
+        ret = start_day + datetime.timedelta(0)  # copy input
         for _i in range(n):
             ret += datetime.timedelta(1)
             ret = self.holiday_go_after(ret)

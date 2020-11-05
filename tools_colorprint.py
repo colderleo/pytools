@@ -132,23 +132,18 @@ def print(*args, sep=' ', end='\n', file=sys.stdout, color=None, background=None
 
     if dt:
         now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f'{now_str} ', end='', color=dt_color)
+        print(f'{now_str} ', end='', color=dt_color, flush=True)
 
     if color or background:
         kwargs['end'] = ""
 
         if is_windows:
             if color:
-                import time
-                time.sleep(1)
                 set_cmd_text_color(windows_colors[color])
-                __builtin__.print(f'[{color}]:', file=file, end='')
 
-            # __builtin__.print(*args, **kwargs)
             sys.stdout.write(*args)
-
-            __builtin__.print(file=file, end=end)
-            # resetColor()
+            __builtin__.print(file=file, end=end, flush=True)
+            resetColor()
 
         else:
             if color:
